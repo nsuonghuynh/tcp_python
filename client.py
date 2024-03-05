@@ -1,12 +1,18 @@
 import socket
 import sys
+import argparse
 
+parser = argparse.ArgumentParser()
+parser.add_argument("--ip", "-i", type=str, default='localhost',help="Server IP")
+parser.add_argument("--port", "-p", type=int, default=8000, help="Server port")
+args = parser.parse_args()
 
 # Create a TCP/IP socket
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-# Connect the socket to the port where the server is listening
-server_address = ('localhost', 8000)
+# Bind the socket
+# server_address = ('localhost', 8000)
+server_address = (args.ip, args.port)
 sock.connect(server_address)
 
 try:
