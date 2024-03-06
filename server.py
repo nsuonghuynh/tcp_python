@@ -26,6 +26,46 @@ class Student:
     def update_score(self, new_score):
         self.score = new_score
 
+def search_student(id):
+    with open("db.txt", 'r') as file:
+        for line in file:
+            fields = line.strip().split(',')
+            if fields[0][-6:] == id:
+                return line
+    return "Student not found"
+
+def search_by_score(score):
+    with open("db.txt", 'r') as file:
+        records = []
+        for line in file:
+            fields = line.strip().split(',')
+            scr = int(fields[3][7:])
+            if (scr > int(score)):
+                records.append(line)
+        message = "".join(records)
+        return message
+        
+def display_db():
+    with open("db.txt", 'r') as file:
+        records = []
+        for line in file:
+            records.append(line)
+        message = " ".join(records)
+        return message
+
+def remove_field(id):
+    lines = []
+    with open("db.txt", 'r') as file:
+        for line in file:
+            fields = line.strip().split(',')
+            if (fields[0][-6:] != id):
+                lines.append(line)
+    
+    with open("db.txt", 'w') as file: 
+        for line in lines:
+            file.write(line) 
+    return 0
+
 def case1(connection):
 
     # Receive student data from the client
@@ -45,22 +85,34 @@ def case1(connection):
     with open("db.txt", "a") as file:
         file.write(new_student.__str__())
     
-    return "Added new student"
+    return "Added new student\n"
 
-def case2():
-    return "case2"
+def case2(connection):
+    data = connection.recv(1024).decode()
+    print("Received for case2:", data)
+    items = data.split()
+    return search_student(items[1])
 
-def case3():
-    return "case3"
+def case3(connection):
+    data = connection.recv(1024).decode()
+    print("Received for case3:", data)
+    items = data.split()
+    return search_by_score(items[1])
 
-def case4():
-    pass
+def case4(connection):
+    data = connection.recv(1024).decode()
+    print("Received for case4:", data)
+    return display_db()
 
-def case5():
-    pass
+def case5(connection):
+    data = connection.recv(1024).decode()
+    print("Received for case4:", data)
+    items = data.split()
+    remove_field(items[1])
+    return "Student(s) not found or removed."
 
-def exit_program():
-    pass
+def exit_program(connection):
+    exit()
 
 def switch_case(choice, connection):
     switcher = {
@@ -108,10 +160,11 @@ def main():
                 print(data)
 
                 if data:
-                    if data == '6':
-                        break
                     response = switch_case(data[0], connection)
                     connection.sendall(response.encode('utf-8'))
+
+                    if data == '6':
+                        break
                     
                 # print(f'Received "{decoded_data}"', file=sys.stderr)
                 # if data:

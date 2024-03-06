@@ -1,5 +1,2 @@
-ID: 123456
- Last: Bobby
- First: Example
- Score: 99
-
+ID: 123456, Last: Bobby, First: Example, Score: 99
+ID: 513690, Last: My, First: Name, Score: 50
