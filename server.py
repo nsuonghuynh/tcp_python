@@ -1,8 +1,9 @@
+import os
 import socket
 import sys
 import argparse
 
-student_list = []
+students = []
 
 class Student:
     def __init__(self, id, lname, fname, score):
@@ -14,59 +15,60 @@ class Student:
     def __str__(self):
         return f"ID: {self.id}, Last: {self.lname}, First: {self.fname}, Score: {self.score}\n"
     
-    def update_id(self, new_id):
-        self.id = new_id
-
-    def update_lname(self, new_lname):
-        self.lname = new_lname
-    
-    def update_fname(self, new_fname):
-        self.fname = new_fname
-
-    def update_score(self, new_score):
-        self.score = new_score
-
-def search_student(id):
+def update_db():
+    global students
     with open("db.txt", 'r') as file:
         for line in file:
             fields = line.strip().split(',')
-            if fields[0][-6:] == id:
-                return line
-    return "Student not found"
-
-def search_by_score(score):
-    with open("db.txt", 'r') as file:
-        records = []
-        for line in file:
-            fields = line.strip().split(',')
-            scr = int(fields[3][7:])
-            if (scr > int(score)):
-                records.append(line)
-        message = "".join(records)
-        return message
-        
-def display_db():
-    with open("db.txt", 'r') as file:
-        records = []
-        for line in file:
-            records.append(line)
-        message = " ".join(records)
-        return message
-
-def remove_field(id):
-    lines = []
-    with open("db.txt", 'r') as file:
-        for line in file:
-            fields = line.strip().split(',')
-            if (fields[0][-6:] != id):
-                lines.append(line)
-    
-    with open("db.txt", 'w') as file: 
-        for line in lines:
-            file.write(line) 
+            id = fields[0][4:]
+            lname = fields[1][7:]
+            fname = fields[2][8:]
+            score = fields[3][8:]
+            student = Student(id, lname, fname, score)
+            students.append(student)
     return 0
 
+def search_student(id):
+    global students
+    for student in students:
+        if student.id == id:
+            return student.__str__()
+    return "Student not found."
+
+def search_by_score(score):
+    global students
+    records = []
+    for student in students:
+        if int(student.score) > int(score):
+            records.append(student.__str__())
+    message = "".join(records)
+    if len(message) == 0:
+        message = "No student found with given minimum score."
+    return message 
+        
+def display_db():
+    global students
+    records = []
+    for student in students:
+        records.append(student.__str__())
+    message = "".join(records)
+    if len(message) == 0:
+        message = "Database empty."
+    return message
+
+def remove_field(id):
+    global students
+    for i, student in enumerate(students):
+        if student.id == id:
+            students.pop(i)
+            with open("db.txt", 'w') as file: 
+                for student in students:
+                    file.write(student.__str__()) 
+            return "Student #{student.id} removed."
+    return "Student not found."
+
 def case1(connection):
+    global students
 
     # Receive student data from the client
     data = connection.recv(1024).decode()
@@ -75,17 +77,21 @@ def case1(connection):
     items = data.split()
 
     id = items[1]
+    for student in students:
+        if student.id == id:
+            return "Student ID already exists."
+        
     lname = items[2]
     fname = items[3]
     score = items[4]
     
     new_student = Student(id, lname, fname, score)
-    student_list.append(new_student)
+    students.append(new_student)
 
     with open("db.txt", "a") as file:
         file.write(new_student.__str__())
     
-    return "Added new student\n"
+    return "Added new student.\n"
 
 def case2(connection):
     data = connection.recv(1024).decode()
@@ -106,12 +112,12 @@ def case4(connection):
 
 def case5(connection):
     data = connection.recv(1024).decode()
-    print("Received for case4:", data)
+    print("Received for case5:", data)
     items = data.split()
-    remove_field(items[1])
-    return "Student(s) not found or removed."
+    return(remove_field(items[1]))
 
 def exit_program(connection):
+    print("Connection closed.")
     exit()
 
 def switch_case(choice, connection):
@@ -127,19 +133,22 @@ def switch_case(choice, connection):
     return func(connection)
     
 def main():
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--ip", "-i", type=str, default='localhost',help="Server IP")
     parser.add_argument("--port", "-p", type=int, default=8000, help="Server port")
     args = parser.parse_args()
 
+    file_path = "./db.txt"
+    if os.path.exists(file_path):
+        update_db()
+        print("Database updated from 'db.txt'.")
 
     # Create a TCP/IP socket
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     # Bind the socket
-    # server_address = ('localhost', 8000)
     server_address = (args.ip, args.port)
-
     sock.bind(server_address)
 
     # Listen for incoming connections
@@ -151,13 +160,10 @@ def main():
         connection, client_address = sock.accept()
 
         try:
-            
-            # Receive the data in small chunks and retransmit it
+            # Receive the data from client
             while True:
                 
                 data = connection.recv(1024).decode('utf-8')
-
-                print(data)
 
                 if data:
                     response = switch_case(data[0], connection)
@@ -165,18 +171,12 @@ def main():
 
                     if data == '6':
                         break
-                    
-                # print(f'Received "{decoded_data}"', file=sys.stderr)
-                # if data:
-                #     print('sending data back to the client', file=sys.stderr)
-                #     connection.sendall(data)
-                # else:
-                #     print(f'No more data from {client_address}' , file=sys.stderr)
-                #     break
-                
+
         finally:
             # Clean up the connection
             connection.close()
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
+            
+main()
